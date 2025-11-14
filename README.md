@@ -6,7 +6,7 @@
 |_| \_|  |_|   /_/\_\
 ```
 
-# NYX Scanner - Professional Network Reconnaissance Framework
+# NYX Scanner - Network Reconnaissance Tool
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.6+-green.svg)](https://www.python.org/)
@@ -22,18 +22,18 @@
 
 ### Overview
 
-NYX Scanner is a professional-grade network reconnaissance tool designed for security professionals and penetration testers. Built entirely with Python's standard library, it requires zero external dependencies while delivering enterprise-level performance and accuracy.
+NYX Scanner is a lightweight network reconnaissance tool designed for security enthusiasts and penetration testers. Built entirely with Python's standard library, it requires zero external dependencies while providing efficient scanning capabilities.
 
 ### Key Features
 
 - **Zero Dependencies**: Works with Python 3.6+ standard library only
 - **Dual Interface**: Command-line and web-based interfaces
-- **High Performance**: Multi-threaded scanning with stealth mode
+- **Efficient Scanning**: Multi-threaded scanning with stealth mode
 - **Service Detection**: Identifies services and versions on open ports
 - **OS Fingerprinting**: TTL-based operating system detection
 - **Multiple Export Formats**: Text, JSON, and grepable output
 - **Pre-scan Checks**: Validates target reachability before scanning
-- **Professional Output**: Clean, color-coded terminal output
+- **Clean Output**: Color-coded terminal output with detailed results
 
 ### Installation
 
@@ -241,10 +241,10 @@ nyx-framework/
 ### Performance
 
 - **Multi-threaded**: Concurrent port scanning (default: 75 threads)
-- **Optimized Timeouts**: Smart timeout management
+- **Smart Timeouts**: Configurable timeout management
 - **Pre-scan Checks**: Validates connectivity before full scan
-- **Efficient Memory**: Low memory footprint
-- **Fast Execution**: Typical scan completes in seconds
+- **Low Memory Usage**: Minimal memory footprint
+- **Quick Scans**: Most scans complete in seconds
 
 ### OS Detection
 
@@ -303,18 +303,18 @@ For issues, questions, or contributions:
 
 ### Descripción General
 
-NYX Scanner es una herramienta de reconocimiento de redes de nivel profesional diseñada para profesionales de seguridad y pentesters. Construida completamente con la biblioteca estándar de Python, no requiere dependencias externas mientras ofrece rendimiento y precisión de nivel empresarial.
+NYX Scanner es una herramienta ligera de reconocimiento de redes diseñada para entusiastas de seguridad y pentesters. Construida completamente con la biblioteca estándar de Python, no requiere dependencias externas mientras ofrece capacidades de escaneo eficientes.
 
 ### Características Principales
 
 - **Cero Dependencias**: Funciona solo con la biblioteca estándar de Python 3.6+
 - **Interfaz Dual**: Interfaces de línea de comandos y web
-- **Alto Rendimiento**: Escaneo multi-hilo con modo sigiloso
+- **Escaneo Eficiente**: Escaneo multi-hilo con modo sigiloso
 - **Detección de Servicios**: Identifica servicios y versiones en puertos abiertos
 - **Fingerprinting de SO**: Detección de sistema operativo basada en TTL
 - **Múltiples Formatos de Exportación**: Texto, JSON y formato grepable
 - **Verificación Pre-escaneo**: Valida accesibilidad del objetivo antes de escanear
-- **Salida Profesional**: Salida de terminal limpia y codificada por colores
+- **Salida Limpia**: Salida de terminal codificada por colores con resultados detallados
 
 ### Instalación
 
@@ -522,10 +522,10 @@ nyx-framework/
 ### Rendimiento
 
 - **Multi-hilo**: Escaneo de puertos concurrente (por defecto: 75 hilos)
-- **Timeouts Optimizados**: Gestión inteligente de timeouts
+- **Timeouts Inteligentes**: Gestión configurable de timeouts
 - **Verificaciones Pre-escaneo**: Valida conectividad antes del escaneo completo
-- **Memoria Eficiente**: Huella de memoria baja
-- **Ejecución Rápida**: Escaneo típico completa en segundos
+- **Bajo Uso de Memoria**: Huella de memoria mínima
+- **Escaneos Rápidos**: La mayoría completa en segundos
 
 ### Detección de SO
 
@@ -581,4 +581,4 @@ Para problemas, preguntas o contribuciones:
 ---
 
 
-**NYX Scanner** - Professional Network Reconnaissance Framework | Developed by Diego Perrusquía | MIT License | 2025
+**NYX Scanner** - Network Reconnaissance Tool | Developed by Diego Perrusquía | MIT License | 2025
