@@ -1,0 +1,163 @@
+{
+  "services": {
+    "7": {"name": "echo", "description": "Echo Protocol"},
+    "9": {"name": "discard", "description": "Discard Protocol"},
+    "13": {"name": "daytime", "description": "Daytime Protocol"},
+    "21": {"name": "ftp", "description": "File Transfer Protocol", "probes": ["USER anonymous\r\n", "HELP\r\n"]},
+    "22": {"name": "ssh", "description": "Secure Shell", "banner_match": "SSH-(\\d+\\.\\d+)-(.+)"},
+    "23": {"name": "telnet", "description": "Telnet"},
+    "25": {"name": "smtp", "description": "Simple Mail Transfer Protocol", "probes": ["EHLO nyx\r\n"]},
+    "53": {"name": "dns", "description": "Domain Name System"},
+    "80": {"name": "http", "description": "HTTP Web Server"},
+    "110": {"name": "pop3", "description": "Post Office Protocol v3"},
+    "111": {"name": "rpcbind", "description": "RPC Bind"},
+    "135": {"name": "msrpc", "description": "Microsoft RPC"},
+    "139": {"name": "netbios-ssn", "description": "NetBIOS Session Service"},
+    "143": {"name": "imap", "description": "Internet Message Access Protocol"},
+    "443": {"name": "https", "description": "HTTP over SSL/TLS"},
+    "445": {"name": "microsoft-ds", "description": "Microsoft Directory Services / SMB"},
+    "465": {"name": "smtps", "description": "SMTP over SSL"},
+    "513": {"name": "rlogin", "description": "Remote Login"},
+    "514": {"name": "shell", "description": "Remote Shell"},
+    "587": {"name": "submission", "description": "Mail Submission"},
+    "631": {"name": "ipp", "description": "Internet Printing Protocol / CUPS"},
+    "873": {"name": "rsync", "description": "Rsync File Synchronization"},
+    "993": {"name": "imaps", "description": "IMAP over SSL"},
+    "995": {"name": "pop3s", "description": "POP3 over SSL"},
+    "1080": {"name": "socks", "description": "SOCKS Proxy"},
+    "1433": {"name": "ms-sql-s", "description": "Microsoft SQL Server"},
+    "1434": {"name": "ms-sql-m", "description": "Microsoft SQL Monitor"},
+    "1521": {"name": "oracle", "description": "Oracle Database"},
+    "1723": {"name": "pptp", "description": "Point-to-Point Tunneling Protocol"},
+    "2049": {"name": "nfs", "description": "Network File System"},
+    "2082": {"name": "cpanel", "description": "cPanel"},
+    "2083": {"name": "cpanels", "description": "cPanel over SSL"},
+    "2181": {"name": "zookeeper", "description": "Apache ZooKeeper"},
+    "2375": {"name": "docker", "description": "Docker REST API"},
+    "2376": {"name": "docker-s", "description": "Docker REST API over SSL"},
+    "3000": {"name": "http-alt", "description": "HTTP Alternative / Node.js"},
+    "3128": {"name": "squid-http", "description": "Squid HTTP Proxy"},
+    "3306": {"name": "mysql", "description": "MySQL Database"},
+    "3389": {"name": "ms-wbt-server", "description": "Microsoft Terminal Services / RDP"},
+    "4369": {"name": "epmd", "description": "Erlang Port Mapper Daemon"},
+    "5000": {"name": "upnp", "description": "Universal Plug and Play / Flask"},
+    "5432": {"name": "postgresql", "description": "PostgreSQL Database"},
+    "5672": {"name": "amqp", "description": "Advanced Message Queuing Protocol / RabbitMQ"},
+    "5900": {"name": "vnc", "description": "Virtual Network Computing"},
+    "5984": {"name": "couchdb", "description": "CouchDB Database"},
+    "5985": {"name": "winrm", "description": "Windows Remote Management"},
+    "5986": {"name": "winrm-s", "description": "Windows Remote Management over SSL"},
+    "6379": {"name": "redis", "description": "Redis Key-Value Store"},
+    "6443": {"name": "kubernetes", "description": "Kubernetes API Server"},
+    "7000": {"name": "cassandra", "description": "Apache Cassandra"},
+    "7474": {"name": "neo4j", "description": "Neo4j Graph Database"},
+    "8000": {"name": "http-alt", "description": "HTTP Alternative"},
+    "8008": {"name": "http", "description": "HTTP Alternative"},
+    "8080": {"name": "http-proxy", "description": "HTTP Proxy / Tomcat"},
+    "8081": {"name": "http-alt", "description": "HTTP Alternative"},
+    "8088": {"name": "http-alt", "description": "HTTP Alternative"},
+    "8118": {"name": "privoxy", "description": "Privoxy Proxy"},
+    "8443": {"name": "https-alt", "description": "HTTPS Alternative"},
+    "8888": {"name": "http-alt", "description": "HTTP Alternative"},
+    "9000": {"name": "http-alt", "description": "HTTP Alternative / SonarQube"},
+    "9042": {"name": "cassandra-native", "description": "Cassandra Native Protocol"},
+    "9092": {"name": "kafka", "description": "Apache Kafka"},
+    "9200": {"name": "elasticsearch", "description": "Elasticsearch HTTP"},
+    "9300": {"name": "elasticsearch-native", "description": "Elasticsearch Native"},
+    "9418": {"name": "git", "description": "Git Version Control"},
+    "11211": {"name": "memcache", "description": "Memcached"},
+    "27017": {"name": "mongod", "description": "MongoDB Database"},
+    "27018": {"name": "mongod-shard", "description": "MongoDB Shard"},
+    "28017": {"name": "mongod-web", "description": "MongoDB Web Interface"},
+    "50000": {"name": "db2", "description": "IBM DB2 Database"}
+  },
+  "signatures": {
+    "ssh": [
+      {"pattern": "SSH-(\\d+\\.\\d+)-OpenSSH[_-]([\\d\\.p]+)", "product": "OpenSSH", "extract_version": 2},
+      {"pattern": "SSH-(\\d+\\.\\d+)-libssh[_-]([\\d\\.]+)", "product": "libssh", "extract_version": 2},
+      {"pattern": "SSH-(\\d+\\.\\d+)-dropbear[_-]([\\d\\.]+)", "product": "Dropbear SSH", "extract_version": 2},
+      {"pattern": "SSH-(\\d+\\.\\d+)", "product": "SSH Server", "extract_version": 1}
+    ],
+    "http": [
+      {"pattern": "Server: Apache/([\\d\\.]+)", "product": "Apache HTTP Server", "extract_version": 1},
+      {"pattern": "Server: nginx/([\\d\\.]+)", "product": "nginx", "extract_version": 1},
+      {"pattern": "Server: Microsoft-IIS/([\\d\\.]+)", "product": "Microsoft IIS", "extract_version": 1},
+      {"pattern": "Server: lighttpd/([\\d\\.]+)", "product": "lighttpd", "extract_version": 1},
+      {"pattern": "Server: gunicorn/([\\d\\.]+)", "product": "Gunicorn", "extract_version": 1},
+      {"pattern": "Server: Werkzeug/([\\d\\.]+)", "product": "Werkzeug/Flask", "extract_version": 1},
+      {"pattern": "Server: Jetty\\(([\\d\\.]+)", "product": "Eclipse Jetty", "extract_version": 1},
+      {"pattern": "X-Powered-By: PHP/([\\d\\.]+)", "product": "PHP", "extract_version": 1},
+      {"pattern": "X-Powered-By: Express", "product": "Express.js", "extract_version": 0},
+      {"pattern": "Server: squid/([\\d\\.]+)", "product": "Squid Proxy", "extract_version": 1},
+      {"pattern": "Via:.*Squid/([\\d\\.]+)", "product": "Squid Proxy", "extract_version": 1},
+      {"pattern": "Server: Varnish", "product": "Varnish Cache", "extract_version": 0},
+      {"pattern": "Server: HAProxy", "product": "HAProxy", "extract_version": 0}
+    ],
+    "ftp": [
+      {"pattern": "220.*FileZilla Server ([\\d\\.]+)", "product": "FileZilla", "extract_version": 1},
+      {"pattern": "220.*ProFTPD ([\\d\\.]+)", "product": "ProFTPD", "extract_version": 1},
+      {"pattern": "220.*vsftpd ([\\d\\.]+)", "product": "vsftpd", "extract_version": 1},
+      {"pattern": "220.*Pure-FTPd", "product": "Pure-FTPd", "extract_version": 0},
+      {"pattern": "220.*Microsoft FTP", "product": "Microsoft FTP", "extract_version": 0}
+    ],
+    "smtp": [
+      {"pattern": "220.*Postfix", "product": "Postfix", "extract_version": 0},
+      {"pattern": "220.*Sendmail ([\\d\\.]+)", "product": "Sendmail", "extract_version": 1},
+      {"pattern": "220.*Microsoft ESMTP", "product": "Microsoft Exchange", "extract_version": 0},
+      {"pattern": "220.*Exim ([\\d\\.]+)", "product": "Exim", "extract_version": 1}
+    ],
+    "mysql": [
+      {"pattern": "([\\d\\.]+)-MariaDB", "product": "MariaDB", "extract_version": 1},
+      {"pattern": "([\\d\\.]+)-MySQL", "product": "MySQL", "extract_version": 1},
+      {"pattern": "mysql_native_password", "product": "MySQL/MariaDB", "extract_version": 0}
+    ],
+    "postgresql": [
+      {"pattern": "SCRAM-SHA-256", "product": "PostgreSQL", "extract_version": 0},
+      {"pattern": "PostgreSQL ([\\d\\.]+)", "product": "PostgreSQL", "extract_version": 1}
+    ],
+    "redis": [
+      {"pattern": "redis_version:([\\d\\.]+)", "product": "Redis", "extract_version": 1},
+      {"pattern": "\\+PONG", "product": "Redis", "extract_version": 0}
+    ],
+    "mongodb": [
+      {"pattern": "MongoDB", "product": "MongoDB", "extract_version": 0},
+      {"pattern": "version.+?([\\d\\.]+)", "product": "MongoDB", "extract_version": 1}
+    ],
+    "elasticsearch": [
+      {"pattern": "\"version\"\\s*:\\s*\\{.*\"number\"\\s*:\\s*\"([\\d\\.]+)\"", "product": "Elasticsearch", "extract_version": 1}
+    ],
+    "msrpc": [
+      {"pattern": "ncacn_http", "product": "Microsoft RPC", "extract_version": 0},
+      {"pattern": "MSRPC", "product": "Microsoft RPC", "extract_version": 0}
+    ],
+    "netbios-ssn": [
+      {"pattern": "SMB", "product": "NetBIOS Session Service", "extract_version": 0}
+    ],
+    "microsoft-ds": [
+      {"pattern": "Windows ([\\d\\.]+)", "product": "Microsoft SMB", "extract_version": 1},
+      {"pattern": "Samba ([\\d\\.]+)", "product": "Samba", "extract_version": 1},
+      {"pattern": "SMBv?([123])", "product": "SMB", "extract_version": 1}
+    ],
+    "ms-sql-s": [
+      {"pattern": "Microsoft SQL Server\\s+([\\d\\.]+)", "product": "Microsoft SQL Server", "extract_version": 1},
+      {"pattern": "ServerName", "product": "Microsoft SQL Server", "extract_version": 0}
+    ],
+    "ms-wbt-server": [
+      {"pattern": "TermService", "product": "Microsoft Terminal Services", "extract_version": 0},
+      {"pattern": "RDP", "product": "Remote Desktop Protocol", "extract_version": 0}
+    ],
+    "winrm": [
+      {"pattern": "Microsoft-HTTPAPI/([\\d\\.]+)", "product": "Windows Remote Management", "extract_version": 1}
+    ],
+    "vnc": [
+      {"pattern": "RFB (\\d+\\.\\d+)", "product": "VNC", "extract_version": 1},
+      {"pattern": "RealVNC", "product": "RealVNC", "extract_version": 0},
+      {"pattern": "TightVNC", "product": "TightVNC", "extract_version": 0}
+    ]
+  },
+  "http_probes": [
+    "GET / HTTP/1.1\\r\\nHost: {host}\\r\\nUser-Agent: Mozilla/5.0\\r\\nConnection: close\\r\\n\\r\\n",
+    "HEAD / HTTP/1.0\\r\\n\\r\\n",
+    "OPTIONS / HTTP/1.1\\r\\nHost: {host}\\r\\n\\r\\n"
+  ]
+}

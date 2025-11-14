@@ -1,0 +1,20 @@
+# ========================================================================
+# NYX Scanner - Zero Dependencies Framework
+# ========================================================================
+#
+# NYX Scanner is designed to work with ONLY Python 3.6+ standard library.
+# NO external packages are required for installation or execution.
+#
+# This file exists to explicitly document that this project has:
+#   ZERO pip dependencies
+#   ZERO external libraries needed
+#   ZERO installation steps required
+#
+# Simply run:
+#   python3 nyx_standalone.py scan <target>    # CLI mode
+#   python3 nyx_standalone.py web              # Web interface
+#
+# All features (port scanning, service detection, OS fingerprinting, 
+# web interface) work out-of-the-box with Python standard library only.
+#
+# ========================================================================
