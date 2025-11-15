@@ -160,8 +160,11 @@ class WebHandler(BaseHTTPRequestHandler):
         elif '/results' in path:
             scan_id = path.split('/')[-2]
             if scan_id in web_results:
-                self.send_json_response(web_results[scan_id])
+                results = web_results[scan_id]
+                logger.info(f"Serving results for {scan_id}: {len(results.get('open_ports', []))} ports")
+                self.send_json_response(results)
             else:
+                logger.warning(f"Results not found for {scan_id}. Available: {list(web_results.keys())}")
                 self.send_json_response({'error': 'Results not found'}, 404)
         
         elif '/logs' in path:
@@ -267,9 +270,11 @@ class WebHandler(BaseHTTPRequestHandler):
         elif '/stop' in path:
             scan_id = path.split('/')[3]  # /api/scan/{scan_id}/stop
             if scan_id in web_scans:
-                web_scans[scan_id]['status'] = 'stopped'
+                # Mark as stopping (not stopped yet - thread needs to finish)
+                web_scans[scan_id]['status'] = 'stopping'
                 web_scans[scan_id]['stop_requested'] = True
-                self.send_json_response({'status': 'stopped'})
+                logger.info(f"Stop requested for scan {scan_id}")
+                self.send_json_response({'status': 'stopping'})
             else:
                 self.send_json_response({'error': 'Scan not found'}, 404)
         
@@ -409,23 +414,23 @@ class WebHandler(BaseHTTPRequestHandler):
                 except:
                     continue
         
-        # Test 3: If Linux detected, try to fingerprint distro (stealth)
-        if result['reachable'] and 'Linux' in str(result.get('os_detected', '')):
-            distro_info = self._fingerprint_linux_distro(target)
-            if distro_info:
-                result['os_detected'] = distro_info['distro']
-                result['os_confidence'] = distro_info['confidence']
-                result['distro_hints'] = distro_info.get('hints', [])
+        # Test 3: Enhanced OS fingerprinting (works for all OSes)
+        if result['reachable']:
+            enhanced_info = self._enhanced_os_fingerprint(target, result.get('os_detected'))
+            if enhanced_info:
+                result['os_detected'] = enhanced_info['os']
+                result['os_confidence'] = enhanced_info['confidence']
+                result['distro_hints'] = enhanced_info.get('hints', [])
         
         return result
     
-    def _fingerprint_linux_distro(self, target):
-        """Stealth Linux distribution fingerprinting"""
+    def _enhanced_os_fingerprint(self, target, base_os):
+        """Enhanced OS fingerprinting for all operating systems (stealth)"""
         import socket
         import re
         
         hints = []
-        distro = None
+        detected_os = base_os  # Start with TTL-based detection
         confidence = 70
         
         # Method 1: SSH banner analysis (most reliable and stealth)
@@ -439,78 +444,104 @@ class WebHandler(BaseHTTPRequestHandler):
             if banner:
                 hints.append(f"SSH: {banner.strip()}")
                 
-                # Ubuntu patterns
-                if 'Ubuntu' in banner:
-                    # Extract Ubuntu version from OpenSSH package version
-                    if 'OpenSSH' in banner:
-                        if '1ubuntu' in banner.lower():
-                            match = re.search(r'(\d+)ubuntu', banner, re.IGNORECASE)
-                            if match:
-                                pkg_ver = match.group(1)
-                                # Map package versions to Ubuntu releases
-                                ubuntu_map = {
-                                    '2': 'Ubuntu 20.04 LTS (Focal)',
-                                    '3': 'Ubuntu 20.04/22.04',
-                                    '4': 'Ubuntu 22.04 LTS (Jammy)',
-                                    '5': 'Ubuntu 22.04/24.04',
-                                    '6': 'Ubuntu 24.04 LTS (Noble)',
-                                }
-                                distro = ubuntu_map.get(pkg_ver, 'Ubuntu Linux')
-                                confidence = 85
-                    else:
-                        distro = 'Ubuntu Linux'
-                        confidence = 75
+                # Smart distro detection: Look for package naming patterns
+                # Ubuntu packages contain "ubuntu" in version (e.g., "Debian-8ubuntu1")
+                # Pure Debian packages use formats like "9p1-10+deb11u1"
                 
-                # Debian patterns
-                elif 'Debian' in banner or 'deb' in banner.lower():
+                # Check for Ubuntu-specific package version patterns
+                ubuntu_pattern = re.search(r'[-\.](\d+)ubuntu', banner, re.IGNORECASE)
+                debian_pattern = re.search(r'\+deb(\d+)', banner, re.IGNORECASE)
+                
+                if ubuntu_pattern:
+                    # Ubuntu-based package (could be Ubuntu, Mint, Pop!_OS, etc.)
+                    # Extract Ubuntu base version from package
+                    pkg_ver = ubuntu_pattern.group(1)
+                    ubuntu_base_map = {
+                        '1': 'Ubuntu 8.04-10.04',
+                        '2': 'Ubuntu 10.04-12.04',
+                        '3': 'Ubuntu 14.04-16.04',
+                        '4': 'Ubuntu 16.04-18.04',
+                        '5': 'Ubuntu 18.04-20.04',
+                        '6': 'Ubuntu 20.04',
+                        '7': 'Ubuntu 20.04-22.04',
+                        '8': 'Ubuntu 22.04',
+                        '9': 'Ubuntu 22.04-24.04',
+                        '10': 'Ubuntu 24.04',
+                    }
+                    ubuntu_base = ubuntu_base_map.get(pkg_ver, 'Ubuntu')
+                    # Be honest: we only know it's Ubuntu-based, not the exact distro
+                    detected_os = f'Linux (Ubuntu {pkg_ver}.x based)'
+                    confidence = 85
+                    hints.append(f"Base: {ubuntu_base}")
+                
+                elif debian_pattern:
+                    # Pure Debian with +deb version (or Debian-based like LMDE, MX Linux, etc.)
+                    deb_ver = debian_pattern.group(1)
+                    debian_map = {
+                        '9': 'Stretch',
+                        '10': 'Buster',
+                        '11': 'Bullseye',
+                        '12': 'Bookworm',
+                        '13': 'Trixie',
+                    }
+                    debian_base = debian_map.get(deb_ver, deb_ver)
+                    # Be honest: we only know it's Debian-based
+                    detected_os = f'Linux (Debian {deb_ver} based)'
+                    confidence = 85
+                    hints.append(f"Base: Debian {debian_base}")
+                
+                # Fallback: check for keyword presence (less reliable)
+                elif 'Debian' in banner and 'ubuntu' not in banner.lower():
+                    # Debian-based but exact distro unknown (could be Debian, LMDE, MX Linux, etc.)
                     if 'OpenSSH' in banner:
-                        # Debian stable versions
                         if '9p1' in banner:
-                            distro = 'Debian 11 (Bullseye) / 12 (Bookworm)'
-                            confidence = 80
-                        elif '8p1' in banner:
-                            distro = 'Debian 10 (Buster)'
-                            confidence = 80
-                        else:
-                            distro = 'Debian Linux'
+                            detected_os = 'Linux (Debian-based)'
                             confidence = 75
+                            hints.append("OpenSSH 9.x (Debian Bullseye/Bookworm)")
+                        elif '8p1' in banner:
+                            detected_os = 'Linux (Debian-based)'
+                            confidence = 75
+                            hints.append("OpenSSH 8.x (Debian Buster)")
+                        else:
+                            detected_os = 'Linux (Debian-based)'
+                            confidence = 70
                     else:
-                        distro = 'Debian Linux'
-                        confidence = 70
+                        detected_os = 'Linux (Debian-based)'
+                        confidence = 65
                 
                 # Red Hat / CentOS / Rocky / Alma
                 elif 'el8' in banner.lower() or 'el9' in banner.lower():
                     if 'el9' in banner.lower():
-                        distro = 'RHEL 9 / Rocky 9 / AlmaLinux 9'
+                        detected_os = 'RHEL 9 / Rocky 9 / AlmaLinux 9'
                         confidence = 80
                     elif 'el8' in banner.lower():
-                        distro = 'RHEL 8 / CentOS 8 / Rocky 8'
+                        detected_os = 'RHEL 8 / CentOS 8 / Rocky 8'
                         confidence = 80
                     else:
-                        distro = 'Red Hat Enterprise Linux'
+                        detected_os = 'Red Hat Enterprise Linux'
                         confidence = 75
                 
                 # Fedora
                 elif 'fc3' in banner.lower() or 'fc4' in banner.lower():
-                    distro = 'Fedora Linux'
+                    detected_os = 'Fedora Linux'
                     confidence = 75
                 
                 # Alpine Linux
                 elif 'OpenSSH_9' in banner and len(banner) < 50:
                     # Alpine often has very minimal SSH banners
-                    distro = 'Alpine Linux'
+                    detected_os = 'Alpine Linux'
                     confidence = 70
                 
                 # Arch Linux
                 elif 'Arch' in banner:
-                    distro = 'Arch Linux'
+                    detected_os = 'Arch Linux'
                     confidence = 80
         
         except:
             pass
         
         # Method 2: HTTP Server fingerprinting (passive)
-        if not distro:
+        if not detected_os or detected_os == base_os:
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(3)
@@ -532,15 +563,15 @@ class WebHandler(BaseHTTPRequestHandler):
                 response_str = response.decode('utf-8', errors='ignore')
                 
                 if response_str:
-                    # Ubuntu/Debian Apache defaults
+                    # Ubuntu/Debian Apache defaults (but could be derivatives)
                     if 'Ubuntu' in response_str:
-                        distro = 'Ubuntu Linux'
-                        confidence = 75
-                        hints.append("HTTP headers indicate Ubuntu")
+                        detected_os = 'Linux (Ubuntu-based)'
+                        confidence = 70
+                        hints.append("HTTP: Ubuntu packages detected")
                     elif 'Debian' in response_str:
-                        distro = 'Debian Linux'
-                        confidence = 75
-                        hints.append("HTTP headers indicate Debian")
+                        detected_os = 'Linux (Debian-based)'
+                        confidence = 70
+                        hints.append("HTTP: Debian packages detected")
                     
                     # Check Apache version patterns
                     apache_match = re.search(r'Apache/(\d+\.\d+\.\d+)\s*\(([^)]+)\)', response_str)
@@ -549,33 +580,76 @@ class WebHandler(BaseHTTPRequestHandler):
                         hints.append(f"Apache: {apache_os}")
                         
                         if 'Ubuntu' in apache_os:
-                            distro = 'Ubuntu Linux'
-                            confidence = 80
+                            detected_os = 'Linux (Ubuntu-based)'
+                            confidence = 75
                         elif 'Debian' in apache_os:
-                            distro = 'Debian Linux'
-                            confidence = 80
+                            detected_os = 'Linux (Debian-based)'
+                            confidence = 75
                         elif 'Red Hat' in apache_os or 'CentOS' in apache_os:
-                            distro = 'Red Hat/CentOS'
-                            confidence = 80
+                            detected_os = 'Linux (RHEL-based)'
+                            confidence = 75
             
             except:
                 pass
         
-        # Method 3: Default service ports pattern analysis
-        if not distro:
-            # Ubuntu often has certain default service combinations
-            # This is a fallback, very low confidence
-            distro = 'Linux (Unknown distribution)'
-            confidence = 60
+        # Method 3: Windows-specific fingerprinting (RDP banner on 3389)
+        if 'Windows' in str(base_os) or not detected_os:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(3)
+                sock.connect((target, 3389))  # RDP port
+                # Just checking if RDP is open increases Windows confidence
+                sock.close()
+                
+                if 'Windows' in str(base_os):
+                    # RDP confirms it's Windows
+                    confidence = min(confidence + 10, 95)
+                    hints.append("RDP port open (3389)")
+                else:
+                    detected_os = 'Windows Server'
+                    confidence = 80
+                    hints.append("RDP detected")
+            except:
+                pass
         
-        if distro:
-            return {
-                'distro': distro,
-                'confidence': confidence,
-                'hints': hints
-            }
+        # Method 4: SMB/NetBIOS fingerprinting (Windows/Samba)
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            sock.connect((target, 445))  # SMB port
+            sock.close()
+            
+            if 'Windows' in str(detected_os):
+                confidence = min(confidence + 5, 95)
+                hints.append("SMB port open (445)")
+            elif 'Linux' in str(detected_os):
+                hints.append("Samba detected (445)")
+        except:
+            pass
         
-        return None
+        # Method 5: macOS/BSD fingerprinting (AFP, mDNS patterns)
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            sock.connect((target, 548))  # AFP (Apple Filing Protocol)
+            sock.close()
+            
+            detected_os = 'macOS / Mac OS X'
+            confidence = 85
+            hints.append("AFP detected (macOS)")
+        except:
+            pass
+        
+        # Fallback: Use the original TTL-based detection
+        if not detected_os:
+            detected_os = base_os or 'Unknown'
+            confidence = 50
+        
+        return {
+            'os': detected_os,
+            'confidence': confidence,
+            'hints': hints
+        }
     
     def run_scan(self, scan_id, data):
         """Run scan in background thread"""
@@ -662,10 +736,31 @@ class WebHandler(BaseHTTPRequestHandler):
             # Clean results to remove non-serializable objects
             clean_results = self._clean_scan_results(results)
             
-            # Check if scan was stopped
+            # Check if scan was stopped - still generate report with partial results
             if web_scans.get(scan_id, {}).get('stop_requested', False):
-                web_scans[scan_id]['status'] = 'stopped'
-                log_verbose("Scan stopped by user", "warning")
+                log_verbose("Scan stopped by user - generating partial report...", "warning")
+                
+                # Store partial results BEFORE changing status
+                web_results[scan_id] = clean_results
+                
+                # Log partial results
+                if clean_results.get('open_ports'):
+                    log_verbose(f"Partial scan: Found {len(clean_results['open_ports'])} open ports before stop", "warning")
+                    # Also log each port
+                    for port in clean_results['open_ports']:
+                        log_verbose(f"Port {port} is open", "port")
+                else:
+                    log_verbose("Partial scan: No open ports found before stop", "info")
+                
+                # Update scan metadata
+                web_scans[scan_id]['ports_scanned'] = clean_results.get('ports_scanned', 0)
+                web_scans[scan_id]['open_ports_found'] = len(clean_results.get('open_ports', []))
+                web_scans[scan_id]['progress'] = 100
+                
+                # Mark as completed so results are displayed
+                web_scans[scan_id]['status'] = 'completed'
+                
+                logger.info(f"Stopped scan {scan_id} - stored {len(clean_results.get('open_ports', []))} ports in results")
                 return
             
             # Log results

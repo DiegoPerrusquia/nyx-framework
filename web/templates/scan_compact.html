@@ -481,7 +481,7 @@
             <form id="scan-form">
                 <div class="form-group">
                     <label for="target">Target</label>
-                    <input type="text" id="target" name="target" placeholder="192.168.1.1 or example.com" required>
+                    <input type="text" id="target" name="target" placeholder="192.168.1.1 or example.com" required autocomplete="off">
                 </div>
                 
                 <div class="form-group">
@@ -498,7 +498,7 @@
                 
                 <div class="form-group hidden" id="custom-ports-group">
                     <label for="custom-ports">Custom Ports</label>
-                    <input type="text" id="custom-ports" name="custom-ports" placeholder="80,443,8080 or 1-1000">
+                    <input type="text" id="custom-ports" name="custom-ports" placeholder="80,443,8080 or 1-1000" autocomplete="off">
                 </div>
                 
                 <div class="form-row">
@@ -751,13 +751,26 @@
                 if (status.status === 'completed') {
                     stopScanMonitoring();
                     hideScanProgress();
-                    loadScanResults();
+                    // Small delay to ensure results are saved
+                    setTimeout(() => {
+                        loadScanResults();
+                        addVerboseLog('Scan completed successfully', 'success');
+                    }, 500);
                 } else if (status.status === 'error') {
                     stopScanMonitoring();
                     hideScanProgress();
+                    addVerboseLog('Scan encountered an error', 'error');
+                } else if (status.status === 'stopping') {
+                    // Keep monitoring - scan is being stopped but thread hasn't finished yet
+                    addVerboseLog('Stopping scan - waiting for thread to finish...', 'warning');
                 } else if (status.status === 'stopped') {
                     stopScanMonitoring();
                     hideScanProgress();
+                    // Give more time for stopped scans to save results
+                    setTimeout(() => {
+                        loadScanResults();
+                        addVerboseLog('Scan stopped - showing partial results', 'warning');
+                    }, 1000);
                 }
             } catch (error) {
                 console.error('Error checking scan status:', error);
@@ -772,6 +785,7 @@
                 'running': 'Scanning',
                 'scanning': 'Scanning',
                 'detecting_services': 'Detecting',
+                'stopping': 'Stopping',
                 'completed': 'Completed',
                 'error': 'Error',
                 'stopped': 'Stopped'
@@ -868,16 +882,33 @@
             logElement.scrollTop = logElement.scrollHeight;
         }
         
-        async function loadScanResults() {
+        async function loadScanResults(retryCount = 0) {
             if (!currentScanId) return;
             
             try {
                 const response = await fetch(`/api/scan/${currentScanId}/results`);
                 const results = await response.json();
                 
-                displayResults(results);
+                console.log('Loaded results:', results);
+                console.log('Open ports:', results.open_ports);
+                
+                if (response.ok) {
+                    displayResults(results);
+                } else {
+                    // Retry up to 3 times with increasing delays
+                    if (retryCount < 3 && results.error === 'Results not found') {
+                        console.log(`Results not ready yet, retrying in ${(retryCount + 1) * 500}ms...`);
+                        setTimeout(() => {
+                            loadScanResults(retryCount + 1);
+                        }, (retryCount + 1) * 500);
+                    } else {
+                        console.error('Failed to load results:', results);
+                        addVerboseLog('Error loading results: ' + (results.error || 'Unknown error'), 'error');
+                    }
+                }
             } catch (error) {
                 console.error('Error loading scan results:', error);
+                addVerboseLog('Error loading results: ' + error.message, 'error');
             }
         }
         
@@ -976,7 +1007,10 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    stopScanMonitoring();
+                    addVerboseLog('Stop signal sent - waiting for scan to finish...', 'warning');
+                    
+                    // Don't stop monitoring yet - let checkScanStatus handle it
+                    // The scan will transition to 'completed' status automatically
                 } else {
                     alert(result.error || 'Failed to stop scan');
                 }
