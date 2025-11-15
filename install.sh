@@ -58,9 +58,10 @@ fi
 
 # Create wrapper script
 echo -e "${BLUE}[*]${NC} Creating NYX command wrapper..."
-cat > "$INSTALL_DIR/nyx" << EOF
+cat > "$INSTALL_DIR/nyx" <<EOF
 #!/bin/bash
 # NYX Scanner - Command Wrapper
+# shellcheck disable=SC2086,SC2296
 exec python3 "$NYX_PATH/nyx_standalone.py" "\$@"
 EOF
 

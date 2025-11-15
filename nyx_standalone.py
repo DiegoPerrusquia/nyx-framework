@@ -1484,9 +1484,14 @@ def parse_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python nyx.py scan 192.168.1.1                    # Quick scan
-  python nyx.py scan example.com -p top-1000 -s     # Full scan with services
-  python nyx.py web                                  # Start web interface
+  nyx scan 192.168.1.1                              # Quick scan
+  nyx scan example.com -p top-1000 -s               # Full scan with services
+  nyx scan 10.10.10.3 -p 22,80,443 -oG ports.txt    # Custom ports with grepable output
+  nyx web                                           # Start web interface
+  
+If not installed globally:
+  python3 nyx_standalone.py scan <target>
+  python3 nyx_standalone.py web
         """
     )
     
@@ -1717,9 +1722,6 @@ def perform_cli_pre_scan(target, silent=False):
 
 def run_scan(args):
     """Execute network scan with pre-check and professional output"""
-    if not args.silent:
-        print_banner()
-    
     setup_logger(args.verbose, silent=args.silent)
     
     # Validate target
@@ -1963,9 +1965,12 @@ def main():
     if not args.command:
         print_banner()
         print("Usage:")
-        print("  python nyx.py scan <target>     # Perform network scan")
-        print("  python nyx.py web               # Start web interface")
-        print("\nFor detailed help: python nyx.py <command> --help")
+        print("  nyx scan <target>               # Perform network scan")
+        print("  nyx web                         # Start web interface")
+        print("\nIf not installed globally, use:")
+        print("  python3 nyx_standalone.py scan <target>")
+        print("  python3 nyx_standalone.py web")
+        print("\nFor detailed help: nyx <command> --help")
         return
     
     try:

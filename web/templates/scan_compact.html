@@ -646,6 +646,7 @@
             e.preventDefault();
             
             const formData = new FormData(e.target);
+            const target = formData.get('target');
             
             // Get ports value
             let ports = formData.get('ports');
@@ -658,8 +659,40 @@
                 ports = customPorts.trim();
             }
             
+            // Pre-scan connectivity check before starting scan
+            const scanBtn = document.getElementById('scan-btn');
+            scanBtn.disabled = true;
+            scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            
+            try {
+                const preCheckResponse = await fetch('/api/pre-scan-check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target, csrf_token: csrfToken })
+                });
+                
+                const preCheckResult = await preCheckResponse.json();
+                
+                // If host is not reachable, abort scan
+                if (!preCheckResult.reachable) {
+                    alert('Cannot start scan: Host unreachable\n\n' + (preCheckResult.error || 'No response from target'));
+                    scanBtn.disabled = false;
+                    scanBtn.innerHTML = '<i class="fas fa-search"></i> Start Scan';
+                    return;
+                }
+                
+                // Host is reachable, proceed with scan
+                scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+                
+            } catch (error) {
+                alert('Connectivity check failed: ' + error.message);
+                scanBtn.disabled = false;
+                scanBtn.innerHTML = '<i class="fas fa-search"></i> Start Scan';
+                return;
+            }
+            
             const scanData = {
-                target: formData.get('target'),
+                target: target,
                 ports: ports,
                 threads: parseInt(formData.get('threads')),
                 timeout: parseInt(formData.get('timeout')),
@@ -696,9 +729,13 @@
                     } else {
                         alert(result.error || 'Failed to start scan');
                     }
+                    scanBtn.disabled = false;
+                    scanBtn.innerHTML = '<i class="fas fa-search"></i> Start Scan';
                 }
             } catch (error) {
                 alert('Network error: ' + error.message);
+                scanBtn.disabled = false;
+                scanBtn.innerHTML = '<i class="fas fa-search"></i> Start Scan';
             }
         });
         
